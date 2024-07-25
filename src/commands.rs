@@ -54,15 +54,15 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
     println!("{}", repo_info_url);
     let client = reqwest::blocking::Client::new();
 
-    let response = if let Ok(response) = client
+    let request = client
         .get(repo_info_url)
         .header(
             "User-Agent",
             format!("Chatterino Plugin Manager {VERSION_STR}"),
         )
-        .header("Accept", "application/json")
-        .send()
-    {
+        .header("Accept", "application/json");
+
+    let response = if let Ok(response) = request.send() {
         let status = response.status();
         if status.as_u16() == 403 || status.as_u16() == 429 {
             // rate limit
