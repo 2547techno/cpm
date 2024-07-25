@@ -1,5 +1,9 @@
 use clap::{command, Arg, ArgAction, Command};
 
+mod commands;
+
+const VERSION_STR: &str = "v0.1a";
+
 fn main() {
     let matches = command!()
         .subcommand(
@@ -21,19 +25,17 @@ fn main() {
                 .about("Uninstall plugin"),
         )
         .subcommand(Command::new("info").about("Get plugin info"))
-        .version("v0.1a")
+        .version(VERSION_STR)
         .arg_required_else_help(true)
         .get_matches();
 
     if let Some((name, submatches)) = matches.subcommand() {
-        match name {
+        let _ = match name {
             "get" => {
-                println!("get");
-
-                let is_repo = submatches.get_flag("repo");
                 let plugin = submatches.get_one::<String>("plugin").unwrap();
+                let is_repo = submatches.get_flag("repo");
 
-                println!("{} {}", is_repo, plugin);
+                commands::get_plugin(plugin, is_repo)
             }
             "remove" => {
                 todo!("implement remove")
@@ -42,8 +44,9 @@ fn main() {
                 todo!("implement remove")
             }
             _ => {
-                println!("none")
+                println!("none");
+                Ok(())
             }
-        }
+        };
     }
 }
