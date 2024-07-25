@@ -10,7 +10,7 @@ use crate::VERSION_STR;
 pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
     if !is_repo {
         println!("Non repo plugins are not currently supported!");
-        return Ok(());
+        return Err(());
     }
 
     let parsed_url = if let Ok(parsed) = Url::parse(plugin) {
