@@ -13,6 +13,7 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
         return Err(());
     }
 
+    // parse url
     let parsed_url = if let Ok(parsed) = Url::parse(plugin) {
         parsed
     } else {
@@ -20,11 +21,13 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
         return Err(());
     };
 
+    // check if domain is github.com
     if parsed_url.host() != Some(Domain("github.com")) {
         println!("Invalid GitHub repository URL");
         return Err(());
     }
 
+    // extract owner and repo name from path
     let github_path_re = Regex::new(r"^/([^/]+)/([^/]+)/?$").unwrap();
     let captures = if let Some(captures) = github_path_re.captures(parsed_url.path()) {
         captures
@@ -65,7 +68,7 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
     let response = if let Ok(response) = request.send() {
         let status = response.status();
         if status.as_u16() == 403 || status.as_u16() == 429 {
-            // rate limit
+            // rate limit reached
             let default_header_value = HeaderValue::from_str("").unwrap();
             let reset_epoch = response
                 .headers()
@@ -92,7 +95,6 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
             println!("{}", error_str);
             return Err(());
         } else if !status.is_success() {
-            // unexpected error
             println!("GitHub API returned an unexpected status code");
             return Err(());
         }
@@ -103,6 +105,7 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
         return Err(());
     };
 
+    // parse response body as json
     let json = if let Ok(json) = response.json::<serde_json::Value>() {
         json
     } else {
