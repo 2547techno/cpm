@@ -1,6 +1,7 @@
 use clap::{command, Arg, ArgAction, Command};
 
 mod commands;
+mod utils;
 
 const VERSION_STR: &str = "v0.1a";
 
