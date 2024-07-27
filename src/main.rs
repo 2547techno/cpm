@@ -1,4 +1,4 @@
-use clap::{command, Arg, ArgAction, Command};
+use clap::{arg, command, Arg, ArgAction, Command};
 
 mod commands;
 mod utils;
@@ -26,17 +26,20 @@ fn main() {
                 .about("Uninstall plugin"),
         )
         .subcommand(Command::new("info").about("Get plugin info"))
+        .arg(arg!(-p --path <path>))
         .version(VERSION_STR)
         .arg_required_else_help(true)
         .get_matches();
 
     if let Some((name, submatches)) = matches.subcommand() {
+        let chatterino_path = matches.get_one::<String>("path");
+
         let _ = match name {
             "get" => {
                 let plugin = submatches.get_one::<String>("plugin").unwrap();
                 let is_repo = submatches.get_flag("repo");
 
-                commands::get_plugin(plugin, is_repo)
+                commands::get_plugin(plugin, is_repo, chatterino_path)
             }
             "remove" => {
                 todo!("implement remove")
