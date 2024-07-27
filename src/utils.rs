@@ -96,7 +96,7 @@ pub fn write_plugin_data(
         return Err(());
     }
 
-    // TODO: check if a plugin folder exists with the same name
+    //TODO: Check if plugin is already installed - https://trello.com/c/Bc1p8cWq/4-check-if-plugin-is-already-installed
 
     let plugin_path = base_path.join(name);
 
