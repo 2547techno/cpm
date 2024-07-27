@@ -12,7 +12,7 @@ use url::{Host::Domain, Url};
 use crate::utils::{get_default_chatterino_path, get_files_from_gzip, write_plugin_data};
 use crate::VERSION_STR;
 
-fn handle_github_rate_limit(response: &Response) -> Result<(), ()> {
+fn handle_github_rate_limit(response: &Response) -> Result<(), String> {
     let status = response.status();
     if status.as_u16() == 403 || status.as_u16() == 429 {
         // rate limit reached
@@ -39,12 +39,12 @@ fn handle_github_rate_limit(response: &Response) -> Result<(), ()> {
             error_str.push_str(&format!(" Resets in {}", duration_str));
         }
 
-        println!("{}", error_str);
-        return Err(());
+        return Err(error_str);
     } else if !status.is_success() {
         let status_str = status.as_str();
-        println!("GitHub API returned an unexpected status code: {status_str}");
-        return Err(());
+        return Err(format!(
+            "GitHub API returned an unexpected status code: {status_str}"
+        ));
     }
 
     Ok(())
@@ -54,54 +54,38 @@ pub fn get_plugin(
     plugin: &String,
     is_repo: bool,
     chatterino_path: Option<&String>,
-) -> Result<(), ()> {
+) -> Result<(), String> {
     if !is_repo {
-        println!("Non repo plugins are not currently supported!");
-        return Err(());
+        return Err("Non repo plugins are not currently supported!".to_string());
     }
 
     // parse url
-    let parsed_url = if let Ok(parsed) = Url::parse(plugin) {
-        parsed
-    } else {
-        println!("Invalid URL");
-        return Err(());
-    };
+    let parsed_url = Url::parse(plugin).or(Err("Invalid URL".to_string()))?;
 
     // check if domain is github.com
-    if parsed_url.host() != Some(Domain("github.com")) {
-        println!("Invalid GitHub repository URL");
-        return Err(());
+    let domain = parsed_url.host().ok_or("Could not parse domain")?;
+    if domain != Domain("github.com") {
+        return Err("Invalid GitHub repository URL".to_string());
     }
 
     // extract owner and repo name from path
     let github_path_re = Regex::new(r"^/([^/]+)/([^/]+)/?$").unwrap();
-    let captures = if let Some(captures) = github_path_re.captures(parsed_url.path()) {
-        captures
-    } else {
-        println!("Invalid GitHub repository URL");
-        return Err(());
-    };
+    let captures = github_path_re
+        .captures(parsed_url.path())
+        .ok_or("Invalid GitHub repository URL")?;
 
-    let owner = if let Some(owner) = captures.get(1) {
-        owner.as_str()
-    } else {
-        println!("Could not parse repository owner from URL");
-        return Err(());
-    };
+    let owner = captures
+        .get(1)
+        .ok_or("Could not parse repository owner from URL")?
+        .as_str();
 
-    let repo = if let Some(repo) = captures.get(2) {
-        repo.as_str()
-    } else {
-        println!("Could not parse repository name from URL");
-        return Err(());
-    };
+    let repo = captures
+        .get(2)
+        .ok_or("Could not parse repository name from URL")?
+        .as_str();
 
     // github api to get default branch
-    // https://api.github.com/repos/<owner>/<repo>
-    // "default_branch"
     let repo_info_url = format!("https://api.github.com/repos/{owner}/{repo}");
-    // println!("{}", repo_info_url);
     let client = reqwest::blocking::Client::new();
 
     let request = client
@@ -112,33 +96,21 @@ pub fn get_plugin(
         )
         .header("Accept", "application/json");
 
-    let response = if let Ok(response) = request.send() {
-        if handle_github_rate_limit(&response).is_ok() {
-            response
-        } else {
-            return Err(());
-        }
-    } else {
-        println!("There was en error getting GitHub repository info");
-        return Err(());
-    };
+    let response = request.send().or(Err(
+        "There was en error getting GitHub repository info".to_string()
+    ))?;
+    handle_github_rate_limit(&response)?;
 
     // parse response body as json and get `default_branch`
     let default_branch: String = if let Ok(json) = response.json::<serde_json::Value>() {
         serde_json::from_value(json.get("default_branch").unwrap().to_owned()).unwrap()
     } else {
-        println!("There was an error parsing the GitHub API response");
-        return Err(());
+        return Err("There was an error parsing the GitHub API response".to_string());
     };
 
-    println!("Default branch: {default_branch}");
-
     // get tarball
-    // https://api.github.com/repos/<owner>/<repo>/tarball/<branch>
-
     let repo_tarball_url =
         format!("https://api.github.com/repos/{owner}/{repo}/tarball/{default_branch}");
-    // println!("{}", repo_tarball_url);
     let client = reqwest::blocking::Client::new();
 
     let request = client.get(repo_tarball_url).header(
@@ -146,46 +118,30 @@ pub fn get_plugin(
         format!("Chatterino Plugin Manager {VERSION_STR}"),
     );
 
-    let mut response = if let Ok(response) = request.send() {
-        if handle_github_rate_limit(&response).is_ok() {
-            response
-        } else {
-            return Err(());
-        }
-    } else {
-        println!("There was en error getting GitHub repository info");
-        return Err(());
-    };
+    let mut response = request.send().or(Err(
+        "There was en error downloading GitHub repository tarball".to_string(),
+    ))?;
+    handle_github_rate_limit(&response)?;
 
+    // write tarball to vec
     let mut buf: Vec<u8> = vec![];
-    if !response.read_to_end(&mut buf).is_ok() {
-        println!("There was an error downloading the tarball");
-        return Err(());
-    }
+    response
+        .read_to_end(&mut buf)
+        .or(Err("There was an writing the tarball".to_string()))?;
 
     let files = get_files_from_gzip(&buf);
 
-    // println!("{:?}", files);
-
+    // get chatterino plugins folder path
     let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
-        let mut chatterino_path = Path::new(chatterino_path).to_owned();
-        chatterino_path = chatterino_path.join("Plugins");
-
-        chatterino_path
+        Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
-        if let Ok(mut path) = get_default_chatterino_path() {
-            path = path.join("Plugins");
-            path
-        } else {
-            println!("Chatterino path could no be automatically detected and no path was explicity specified");
-            return Err(());
-        }
+        get_default_chatterino_path()
+            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .join("Plugins")
     };
 
-    let result = write_plugin_data(chatterino_plugins_path, repo, files);
-    if !result.is_ok() {
-        return Err(());
-    }
+    // write to plugin folder
+    write_plugin_data(chatterino_plugins_path, repo, files)?;
 
     Ok(())
 }

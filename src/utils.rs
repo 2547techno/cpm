@@ -58,7 +58,7 @@ pub fn get_files_from_gzip(buf: &Vec<u8>) -> Vec<ProjectFile> {
     files
 }
 
-pub fn get_default_chatterino_path() -> Result<PathBuf, ()> {
+pub fn get_default_chatterino_path() -> Result<PathBuf, String> {
     let machine_kind = if cfg!(linux) {
         Some("linux")
     } else if cfg!(windows) {
@@ -67,33 +67,29 @@ pub fn get_default_chatterino_path() -> Result<PathBuf, ()> {
         None
     };
 
-    let path = match machine_kind {
+    match machine_kind {
         Some("windows") => {
-            if let Some(mut roaming_path_buf) = var_os("APPDATA").map(PathBuf::from) {
-                roaming_path_buf.push("Chatterino2");
-                Ok(roaming_path_buf.to_owned())
-            } else {
-                Err(())
-            }
+            let mut roaming_path_buf = var_os("APPDATA").map(PathBuf::from).ok_or(
+                "Could not read %APPDATA% environment variable. Please use --path instead.",
+            )?;
+            roaming_path_buf.push("Chatterino2");
+            Ok(roaming_path_buf.to_owned())
         }
         Some("linux") => Ok(Path::new("~/.local/share/chatterino").to_owned()),
-        _ => {
-            println!("Unsupported OS, cannot locate Chatterino folder. Please use --path to specify the path.");
-            Err(())
-        }
-    };
-
-    path
+        _ => Err(
+            "Unsupported OS, cannot locate Chatterino folder. Please use --path instead."
+                .to_string(),
+        ),
+    }
 }
 
 pub fn write_plugin_data(
     base_path: PathBuf,
     name: &str,
     files: Vec<ProjectFile>,
-) -> Result<(), ()> {
+) -> Result<(), String> {
     if !base_path.is_dir() {
-        println!("Plugins folder not found in Chatterino folder");
-        return Err(());
+        return Err("Plugins folder not found in Chatterino folder".to_string());
     }
 
     //TODO: Check if plugin is already installed - https://trello.com/c/Bc1p8cWq/4-check-if-plugin-is-already-installed
@@ -101,31 +97,39 @@ pub fn write_plugin_data(
     let plugin_path = base_path.join(name);
 
     if fs::create_dir_all(&plugin_path).is_err() {
-        return Err(());
+        return Err(format!("There was an error creating {name}"));
     }
-    println!("Wrote {}/", &plugin_path.to_string_lossy());
+    println!("Wrote {}", &plugin_path.to_string_lossy());
 
     for file in files {
         let subpath = file.path.path_components.join("/");
         let path = plugin_path.join(subpath);
 
-        println!("{:?}", path);
-
         if file.path.is_dir {
-            if fs::create_dir_all(path).is_err() {
-                return Err(());
+            if fs::create_dir_all(&path).is_err() {
+                return Err(format!(
+                    "There was an error creating {}",
+                    file.path.path_components.join("/")
+                ));
             }
         } else {
-            let f = File::create_new(path);
+            let f = File::create_new(&path);
 
             if let Ok(mut f) = f {
                 if f.write_all(&file.content).is_err() {
-                    return Err(());
+                    return Err(format!(
+                        "There was an writing to {}",
+                        file.path.path_components.join("/")
+                    ));
                 }
             } else {
-                return Err(());
+                return Err(format!(
+                    "There was an error creating {}",
+                    file.path.path_components.join("/")
+                ));
             }
         }
+        println!("Wrote {}", path.to_string_lossy());
     }
 
     Ok(())

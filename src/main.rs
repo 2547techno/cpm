@@ -34,7 +34,7 @@ fn main() {
     if let Some((name, submatches)) = matches.subcommand() {
         let chatterino_path = matches.get_one::<String>("path");
 
-        let _ = match name {
+        if let Err(message) = match name {
             "get" => {
                 let plugin = submatches.get_one::<String>("plugin").unwrap();
                 let is_repo = submatches.get_flag("repo");
@@ -49,8 +49,10 @@ fn main() {
             }
             _ => {
                 println!("none");
-                Ok(())
+                Err("Command not found!".to_string())
             }
-        };
+        } {
+            println!("Error: {message}");
+        }
     }
 }
