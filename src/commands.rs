@@ -8,7 +8,7 @@ use std::{
 };
 use url::{Host::Domain, Url};
 
-use crate::utils::decompress_gzip_tar;
+use crate::utils::{get_default_chatterino_path, get_files_from_gzip};
 use crate::VERSION_STR;
 
 fn handle_github_rate_limit(response: &Response) -> Result<(), ()> {
@@ -49,7 +49,11 @@ fn handle_github_rate_limit(response: &Response) -> Result<(), ()> {
     Ok(())
 }
 
-pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
+pub fn get_plugin(
+    plugin: &String,
+    is_repo: bool,
+    chatterino_path: Option<&String>,
+) -> Result<(), ()> {
     if !is_repo {
         println!("Non repo plugins are not currently supported!");
         return Err(());
@@ -133,7 +137,7 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
 
     let repo_tarball_url =
         format!("https://api.github.com/repos/{owner}/{repo}/tarball/{default_branch}");
-    println!("{}", repo_tarball_url);
+    // println!("{}", repo_tarball_url);
     let client = reqwest::blocking::Client::new();
 
     let request = client.get(repo_tarball_url).header(
@@ -158,7 +162,22 @@ pub fn get_plugin(plugin: &String, is_repo: bool) -> Result<(), ()> {
         return Err(());
     }
 
-    decompress_gzip_tar(&buf);
+    let files = get_files_from_gzip(&buf);
+
+    // println!("{:?}", files);
+
+    let chatterino_path = if let Some(chatterino_path) = chatterino_path {
+        chatterino_path.to_owned()
+    } else {
+        if let Ok(path) = get_default_chatterino_path() {
+            path.to_string_lossy().into_owned()
+        } else {
+            println!("Chatterino path could no be automatically detected and no path was explicity specified");
+            return Err(());
+        }
+    };
+
+    println!("{chatterino_path}");
 
     Ok(())
 }
