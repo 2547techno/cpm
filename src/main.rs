@@ -26,7 +26,7 @@ fn main() {
                 .about("Uninstall plugin"),
         )
         .subcommand(Command::new("info").about("Get plugin info"))
-        .arg(arg!(-p --path <path>))
+        .arg(arg!(-p --path <path> "Path to Chatterino folder"))
         .version(VERSION_STR)
         .arg_required_else_help(true)
         .get_matches();

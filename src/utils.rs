@@ -1,7 +1,8 @@
 use flate2::read::GzDecoder;
 use std::{
     env::var_os,
-    io::Read,
+    fs::{self, File},
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 use tar::Archive;
@@ -83,4 +84,49 @@ pub fn get_default_chatterino_path() -> Result<PathBuf, ()> {
     };
 
     path
+}
+
+pub fn write_plugin_data(
+    base_path: PathBuf,
+    name: &str,
+    files: Vec<ProjectFile>,
+) -> Result<(), ()> {
+    if !base_path.is_dir() {
+        println!("Plugins folder not found in Chatterino folder");
+        return Err(());
+    }
+
+    // TODO: check if a plugin folder exists with the same name
+
+    let plugin_path = base_path.join(name);
+
+    if fs::create_dir_all(&plugin_path).is_err() {
+        return Err(());
+    }
+    println!("Wrote {}/", &plugin_path.to_string_lossy());
+
+    for file in files {
+        let subpath = file.path.path_components.join("/");
+        let path = plugin_path.join(subpath);
+
+        println!("{:?}", path);
+
+        if file.path.is_dir {
+            if fs::create_dir_all(path).is_err() {
+                return Err(());
+            }
+        } else {
+            let f = File::create_new(path);
+
+            if let Ok(mut f) = f {
+                if f.write_all(&file.content).is_err() {
+                    return Err(());
+                }
+            } else {
+                return Err(());
+            }
+        }
+    }
+
+    Ok(())
 }

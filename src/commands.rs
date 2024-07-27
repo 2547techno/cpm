@@ -4,11 +4,12 @@ use reqwest::{self, blocking::Response, header::HeaderValue};
 use serde_json;
 use std::{
     io::Read,
+    path::Path,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use url::{Host::Domain, Url};
 
-use crate::utils::{get_default_chatterino_path, get_files_from_gzip};
+use crate::utils::{get_default_chatterino_path, get_files_from_gzip, write_plugin_data};
 use crate::VERSION_STR;
 
 fn handle_github_rate_limit(response: &Response) -> Result<(), ()> {
@@ -166,18 +167,25 @@ pub fn get_plugin(
 
     // println!("{:?}", files);
 
-    let chatterino_path = if let Some(chatterino_path) = chatterino_path {
-        chatterino_path.to_owned()
+    let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
+        let mut chatterino_path = Path::new(chatterino_path).to_owned();
+        chatterino_path = chatterino_path.join("Plugins");
+
+        chatterino_path
     } else {
-        if let Ok(path) = get_default_chatterino_path() {
-            path.to_string_lossy().into_owned()
+        if let Ok(mut path) = get_default_chatterino_path() {
+            path = path.join("Plugins");
+            path
         } else {
             println!("Chatterino path could no be automatically detected and no path was explicity specified");
             return Err(());
         }
     };
 
-    println!("{chatterino_path}");
+    let result = write_plugin_data(chatterino_plugins_path, repo, files);
+    if !result.is_ok() {
+        return Err(());
+    }
 
     Ok(())
 }
