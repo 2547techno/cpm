@@ -116,12 +116,8 @@ pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
             .join("Plugins")
     };
 
-    // println!("{:?}", chatterino_plugins_path);
     let plugins = parse_plugins(chatterino_plugins_path)?;
-
     print_plugins(plugins);
-
-    // println!("{:?}", plugins);
 
     Ok(())
 }
