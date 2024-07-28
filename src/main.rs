@@ -26,6 +26,11 @@ fn main() {
                 .about("Uninstall plugin"),
         )
         .subcommand(Command::new("info").about("Get plugin info"))
+        .subcommand(
+            Command::new("list")
+                .alias("ls")
+                .about("List installed plugins"),
+        )
         .arg(arg!(-p --path <path> "Path to Chatterino folder"))
         .version(VERSION_STR)
         .arg_required_else_help(true)
@@ -41,6 +46,7 @@ fn main() {
 
                 commands::get_plugin(plugin, is_repo, chatterino_path)
             }
+            "list" => commands::list_plugins(chatterino_path),
             "remove" => {
                 todo!("implement remove")
             }

@@ -5,7 +5,8 @@ use std::{io::Read, path::Path};
 use url::{Host::Domain, Url};
 
 use crate::utils::{
-    get_default_chatterino_path, get_files_from_gzip, handle_github_rate_limit, write_plugin_data,
+    get_default_chatterino_path, get_files_from_gzip, handle_github_rate_limit, parse_plugins,
+    write_plugin_data,
 };
 use crate::VERSION_STR;
 
@@ -101,6 +102,24 @@ pub fn get_plugin(
 
     // write to plugin folder
     write_plugin_data(chatterino_plugins_path, repo, files)?;
+
+    Ok(())
+}
+
+pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
+    // get chatterino plugins folder path
+    let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
+        Path::new(chatterino_path).to_owned().join("Plugins")
+    } else {
+        get_default_chatterino_path()
+            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .join("Plugins")
+    };
+
+    // println!("{:?}", chatterino_plugins_path);
+    let plugins = parse_plugins(chatterino_plugins_path)?;
+
+    println!("{:?}", plugins);
 
     Ok(())
 }
