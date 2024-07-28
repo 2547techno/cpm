@@ -1,6 +1,7 @@
 use regex::Regex;
 use reqwest;
 use serde_json;
+use std::fs;
 use std::{io::Read, path::Path};
 use url::{Host::Domain, Url};
 
@@ -116,8 +117,32 @@ pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
             .join("Plugins")
     };
 
-    let plugins = parse_plugins(chatterino_plugins_path)?;
+    let plugins = parse_plugins(&chatterino_plugins_path)?;
     print_plugins(plugins);
+
+    Ok(())
+}
+
+pub fn remove_plugin(chatterino_path: Option<&String>, plugin_name: String) -> Result<(), String> {
+    // get chatterino plugins folder path
+    let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
+        Path::new(chatterino_path).to_owned().join("Plugins")
+    } else {
+        get_default_chatterino_path()
+            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .join("Plugins")
+    };
+
+    let plugins = parse_plugins(&chatterino_plugins_path)?;
+    let plugin = plugins
+        .iter()
+        .find(|p| p.folder == plugin_name)
+        .ok_or(format!("Plugin '{plugin_name}' not found."))?;
+
+    fs::remove_dir_all(chatterino_plugins_path.join(&plugin.folder))
+        .or(Err("There was an error removing the plugin"))?;
+
+    println!("Removed {plugin_name}");
 
     Ok(())
 }

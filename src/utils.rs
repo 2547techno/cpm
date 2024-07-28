@@ -42,15 +42,15 @@ impl PluginPermission {
 
 #[derive(Debug)]
 pub struct Plugin {
-    folder: String,
-    name: Option<String>,
-    description: Option<String>,
-    homepage: Option<String>,
-    authors: Vec<String>,
-    tags: Vec<String>,
-    version: Option<String>,
-    licence: Option<String>,
-    permissions: Vec<PluginPermission>,
+    pub folder: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub homepage: Option<String>,
+    pub authors: Vec<String>,
+    pub tags: Vec<String>,
+    pub version: Option<String>,
+    pub licence: Option<String>,
+    pub permissions: Vec<PluginPermission>,
 }
 
 impl Plugin {
@@ -301,7 +301,7 @@ pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Plugin,
     Ok(plugin)
 }
 
-pub fn parse_plugins(path: PathBuf) -> Result<Vec<Plugin>, String> {
+pub fn parse_plugins(path: &PathBuf) -> Result<Vec<Plugin>, String> {
     let entries = fs::read_dir(path).or(Err("Could not read Plugins/ folder"))?;
     let mut plugins = Vec::new();
 

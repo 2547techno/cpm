@@ -23,7 +23,9 @@ fn main() {
         .subcommand(
             Command::new("remove")
                 .alias("uninstall")
-                .about("Uninstall plugin"),
+                .alias("rm")
+                .about("Uninstall plugin")
+                .arg(Arg::new("plugin").required(true)),
         )
         .subcommand(Command::new("info").about("Get plugin info"))
         .subcommand(
@@ -48,10 +50,11 @@ fn main() {
             }
             "list" => commands::list_plugins(chatterino_path),
             "remove" => {
-                todo!("implement remove")
+                let plugin = submatches.get_one::<String>("plugin").unwrap();
+                commands::remove_plugin(chatterino_path, plugin.to_string())
             }
             "info" => {
-                todo!("implement remove")
+                todo!("implement info")
             }
             _ => {
                 println!("none");
