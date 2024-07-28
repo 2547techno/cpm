@@ -92,9 +92,14 @@ pub fn write_plugin_data(
         return Err("Plugins folder not found in Chatterino folder".to_string());
     }
 
-    //TODO: Check if plugin is already installed - https://trello.com/c/Bc1p8cWq/4-check-if-plugin-is-already-installed
-
     let plugin_path = base_path.join(name);
+
+    // check if a plugin with the same name is already installed
+    if plugin_path.is_dir() {
+        return Err(format!(
+            "A plugin with the name {name} is already installed."
+        ));
+    }
 
     if fs::create_dir_all(&plugin_path).is_err() {
         return Err(format!("There was an error creating {name}"));
