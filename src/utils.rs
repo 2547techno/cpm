@@ -9,6 +9,7 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
+use tabled::{builder::Builder, settings::Style};
 use tar::Archive;
 
 #[derive(Debug)]
@@ -23,6 +24,7 @@ pub struct ProjectFile {
     content: Vec<u8>,
 }
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct PluginPermission {
     type_: String,
 }
@@ -314,10 +316,25 @@ pub fn parse_plugins(path: PathBuf) -> Result<Vec<Plugin>, String> {
         }
 
         let plugin_path = dir_entry.path();
-        println!("{:?}", plugin_path);
 
         plugins.push(parse_plugin(plugin_path, file_name)?);
     }
 
     Ok(plugins)
+}
+
+pub fn print_plugins(plugins: Vec<Plugin>) {
+    let mut builder = Builder::default();
+    builder.push_record(["Installation Name", "Plugin Name", "Version"]);
+
+    for plugin in plugins {
+        builder.push_record([
+            plugin.folder,
+            format!("({})", plugin.name.unwrap_or("Unknown".to_string())),
+            format!("v{}", plugin.version.unwrap_or("Unknown".to_string())),
+        ]);
+    }
+
+    let table = builder.build().with(Style::rounded()).to_string();
+    println!("{table}");
 }

@@ -6,7 +6,7 @@ use url::{Host::Domain, Url};
 
 use crate::utils::{
     get_default_chatterino_path, get_files_from_gzip, handle_github_rate_limit, parse_plugins,
-    write_plugin_data,
+    print_plugins, write_plugin_data,
 };
 use crate::VERSION_STR;
 
@@ -119,7 +119,9 @@ pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
     // println!("{:?}", chatterino_plugins_path);
     let plugins = parse_plugins(chatterino_plugins_path)?;
 
-    println!("{:?}", plugins);
+    print_plugins(plugins);
+
+    // println!("{:?}", plugins);
 
     Ok(())
 }
