@@ -1,10 +1,15 @@
 use flate2::read::GzDecoder;
+use pretty_duration::pretty_duration;
+use reqwest::{self, blocking::Response, header::HeaderValue};
+use serde_json::{self, Map, Value};
 use std::{
     env::var_os,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
+use tabled::{builder::Builder, settings::Style};
 use tar::Archive;
 
 #[derive(Debug)]
@@ -17,6 +22,51 @@ pub struct ProjectPath {
 pub struct ProjectFile {
     path: ProjectPath,
     content: Vec<u8>,
+}
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct PluginPermission {
+    type_: String,
+}
+
+impl PluginPermission {
+    pub fn from_map(map: &Map<String, Value>) -> Result<PluginPermission, ()> {
+        let type_val: String = map
+            .get("type")
+            .map(|v| serde_json::from_value(v.clone()).or(Err(())))
+            .unwrap_or(Err(()))?;
+
+        Ok(PluginPermission { type_: type_val })
+    }
+}
+
+#[derive(Debug)]
+pub struct Plugin {
+    folder: String,
+    name: Option<String>,
+    description: Option<String>,
+    homepage: Option<String>,
+    authors: Vec<String>,
+    tags: Vec<String>,
+    version: Option<String>,
+    licence: Option<String>,
+    permissions: Vec<PluginPermission>,
+}
+
+impl Plugin {
+    pub fn new() -> Self {
+        Plugin {
+            folder: String::new(),
+            name: None,
+            description: None,
+            homepage: None,
+            authors: Vec::new(),
+            tags: Vec::new(),
+            version: None,
+            licence: None,
+            permissions: Vec::new(),
+        }
+    }
 }
 
 pub fn get_files_from_gzip(buf: &Vec<u8>) -> Vec<ProjectFile> {
@@ -83,6 +133,44 @@ pub fn get_default_chatterino_path() -> Result<PathBuf, String> {
     }
 }
 
+pub fn handle_github_rate_limit(response: &Response) -> Result<(), String> {
+    let status = response.status();
+    if status.as_u16() == 403 || status.as_u16() == 429 {
+        // rate limit reached
+        let default_header_value = HeaderValue::from_str("").unwrap();
+        let reset_epoch = response
+            .headers()
+            .get("X-RateLimit-Reset")
+            .unwrap_or(&default_header_value)
+            .to_str()
+            .unwrap_or("")
+            .parse::<i32>()
+            .unwrap_or(-1);
+        let current_epoch = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i32;
+
+        let mut error_str = "GitHub API rate limit reached!".to_owned();
+        let duration_str = pretty_duration(
+            &Duration::from_secs((reset_epoch - current_epoch) as u64),
+            None,
+        );
+        if reset_epoch != -1 {
+            error_str.push_str(&format!(" Resets in {}", duration_str));
+        }
+
+        return Err(error_str);
+    } else if !status.is_success() {
+        let status_str = status.as_str();
+        return Err(format!(
+            "GitHub API returned an unexpected status code: {status_str}"
+        ));
+    }
+
+    Ok(())
+}
+
 pub fn write_plugin_data(
     base_path: PathBuf,
     name: &str,
@@ -138,4 +226,115 @@ pub fn write_plugin_data(
     }
 
     Ok(())
+}
+
+pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Plugin, String> {
+    let mut plugin = Plugin::new();
+
+    let mut info_file = File::open(plugin_path.join("info.json"))
+        .or(Err("There was an error reading the info.json plugin file"))?;
+
+    let mut info_file_buf = Vec::new();
+    info_file
+        .read_to_end(&mut info_file_buf)
+        .or(Err("There was an error reading the info.json plugin file"))?;
+
+    let buf: String = String::from_utf8(info_file_buf)
+        .or(Err("There was an error decoding the info.json plugin file"))?;
+
+    let json: Value = serde_json::from_str(buf.as_str())
+        .or(Err("There was an error parsing the info.json plugin file"))?;
+
+    plugin.folder = folder_name;
+    plugin.name = json
+        .get("name")
+        .map(|v| serde_json::from_value(v.clone()).unwrap());
+    plugin.description = json
+        .get("description")
+        .map(|v| serde_json::from_value(v.clone()).unwrap());
+    plugin.homepage = json
+        .get("homepage")
+        .map(|v| serde_json::from_value(v.clone()).unwrap());
+    plugin.version = json
+        .get("version")
+        .map(|v| serde_json::from_value(v.clone()).unwrap());
+    plugin.licence = json
+        .get("licence")
+        .map(|v| serde_json::from_value(v.clone()).unwrap());
+
+    let authors: Vec<Value> = Vec::new();
+    let authors: Vec<String> = json
+        .get("authors")
+        .map(|v| v.as_array())
+        .unwrap_or(None)
+        .unwrap_or(&authors)
+        .to_owned()
+        .iter()
+        .map(|v| serde_json::from_value(v.clone()).unwrap())
+        .collect();
+    plugin.authors = authors;
+
+    let tags: Vec<Value> = Vec::new();
+    let tags: Vec<String> = json
+        .get("tags")
+        .map(|v| v.as_array())
+        .unwrap_or(None)
+        .unwrap_or(&tags)
+        .to_owned()
+        .iter()
+        .map(|v| serde_json::from_value(v.clone()).unwrap())
+        .collect();
+    plugin.tags = tags;
+
+    let permissions: Vec<Value> = Vec::new();
+    let permissions: Vec<PluginPermission> = json
+        .get("permissions")
+        .map(|v| v.as_array())
+        .unwrap_or(None)
+        .unwrap_or(&permissions)
+        .to_owned()
+        .iter()
+        .map(|v| PluginPermission::from_map(v.as_object().unwrap()).unwrap())
+        .collect();
+    plugin.permissions = permissions;
+
+    Ok(plugin)
+}
+
+pub fn parse_plugins(path: PathBuf) -> Result<Vec<Plugin>, String> {
+    let entries = fs::read_dir(path).or(Err("Could not read Plugins/ folder"))?;
+    let mut plugins = Vec::new();
+
+    let file_read_err_str = "Could not read file in Plugins/ folder";
+    for entry in entries {
+        let dir_entry = entry.or(Err(file_read_err_str))?;
+        let file_type = dir_entry.file_type().or(Err(file_read_err_str))?;
+        let file_name = dir_entry.file_name().to_string_lossy().to_string();
+
+        if !file_type.is_dir() {
+            continue;
+        }
+
+        let plugin_path = dir_entry.path();
+
+        plugins.push(parse_plugin(plugin_path, file_name)?);
+    }
+
+    Ok(plugins)
+}
+
+pub fn print_plugins(plugins: Vec<Plugin>) {
+    let mut builder = Builder::default();
+    builder.push_record(["Installation Name", "Plugin Name", "Version"]);
+
+    for plugin in plugins {
+        builder.push_record([
+            plugin.folder,
+            format!("({})", plugin.name.unwrap_or("Unknown".to_string())),
+            format!("v{}", plugin.version.unwrap_or("Unknown".to_string())),
+        ]);
+    }
+
+    let table = builder.build().with(Style::rounded()).to_string();
+    println!("{table}");
 }
