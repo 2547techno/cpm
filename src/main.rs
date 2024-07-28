@@ -27,7 +27,11 @@ fn main() {
                 .about("Uninstall plugin")
                 .arg(Arg::new("plugin").required(true)),
         )
-        .subcommand(Command::new("info").about("Get plugin info"))
+        .subcommand(
+            Command::new("info")
+                .about("Get plugin info")
+                .arg(Arg::new("plugin").required(true)),
+        )
         .subcommand(
             Command::new("list")
                 .alias("ls")
@@ -53,7 +57,10 @@ fn main() {
                 let plugin = submatches.get_one::<String>("plugin").unwrap();
                 commands::remove_plugin(chatterino_path, plugin.to_string())
             }
-            "info" => Err("This command is not implemented yet!".to_string()),
+            "info" => {
+                let plugin = submatches.get_one::<String>("plugin").unwrap();
+                commands::plugin_info(chatterino_path, plugin.to_string())
+            }
             _ => Err("Command not found!".to_string()),
         } {
             println!("Error: {message}");

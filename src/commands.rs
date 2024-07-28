@@ -7,7 +7,7 @@ use url::{Host::Domain, Url};
 
 use crate::utils::{
     get_default_chatterino_path, get_files_from_gzip, handle_github_rate_limit, parse_plugins,
-    print_plugins, write_plugin_data,
+    print_plugin_info, print_plugins, write_plugin_data,
 };
 use crate::VERSION_STR;
 
@@ -143,6 +143,27 @@ pub fn remove_plugin(chatterino_path: Option<&String>, plugin_name: String) -> R
         .or(Err("There was an error removing the plugin"))?;
 
     println!("Removed {plugin_name}");
+
+    Ok(())
+}
+
+pub fn plugin_info(chatterino_path: Option<&String>, plugin_name: String) -> Result<(), String> {
+    // get chatterino plugins folder path
+    let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
+        Path::new(chatterino_path).to_owned().join("Plugins")
+    } else {
+        get_default_chatterino_path()
+            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .join("Plugins")
+    };
+
+    let plugins = parse_plugins(&chatterino_plugins_path)?;
+    let plugin = plugins
+        .iter()
+        .find(|p| p.folder == plugin_name)
+        .ok_or(format!("Plugin '{plugin_name}' not found."))?;
+
+    print_plugin_info(plugin.clone());
 
     Ok(())
 }

@@ -23,7 +23,7 @@ pub struct ProjectFile {
     path: ProjectPath,
     content: Vec<u8>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct PluginPermission {
     type_: String,
@@ -40,7 +40,7 @@ impl PluginPermission {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Plugin {
     pub folder: String,
     pub name: Option<String>,
@@ -336,5 +336,44 @@ pub fn print_plugins(plugins: Vec<Plugin>) {
     }
 
     let table = builder.build().with(Style::rounded()).to_string();
+    println!("{table}");
+}
+
+pub fn print_plugin_info(plugin: Plugin) {
+    let mut builder = Builder::new();
+    builder.push_record(["Folder".to_string(), plugin.folder]);
+    builder.push_record([
+        "Name".to_string(),
+        plugin.name.unwrap_or("Unknown".to_string()),
+    ]);
+    builder.push_record([
+        "Description".to_string(),
+        plugin.description.unwrap_or("None".to_string()),
+    ]);
+    builder.push_record([
+        "Homepage".to_string(),
+        plugin.homepage.unwrap_or("None".to_string()),
+    ]);
+    builder.push_record(["Authors".to_string(), plugin.authors.join(", ")]);
+    builder.push_record(["Tags".to_string(), plugin.tags.join(", ")]);
+    builder.push_record([
+        "Version".to_string(),
+        plugin.version.unwrap_or("Unknown".to_string()),
+    ]);
+    builder.push_record([
+        "Licence".to_string(),
+        plugin.licence.unwrap_or("None".to_string()),
+    ]);
+    builder.push_record([
+        "Permissions".to_string(),
+        plugin
+            .permissions
+            .iter()
+            .map(|p| p.type_.clone())
+            .collect::<Vec<String>>()
+            .join(", "),
+    ]);
+
+    let table = builder.build().with(Style::ascii_rounded()).to_string();
     println!("{table}");
 }
