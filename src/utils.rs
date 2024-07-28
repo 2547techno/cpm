@@ -109,9 +109,9 @@ pub fn get_files_from_gzip(buf: &Vec<u8>) -> Vec<ProjectFile> {
 }
 
 pub fn get_default_chatterino_path() -> Result<PathBuf, String> {
-    let machine_kind = if cfg!(linux) {
+    let machine_kind = if cfg!(target_os = "linux") {
         Some("linux")
-    } else if cfg!(windows) {
+    } else if cfg!(target_os = "windows") {
         Some("windows")
     } else {
         None
