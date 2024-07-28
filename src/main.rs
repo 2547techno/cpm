@@ -3,7 +3,7 @@ use clap::{arg, command, Arg, ArgAction, Command};
 mod commands;
 mod utils;
 
-const VERSION_STR: &str = "v0.3a";
+const VERSION_STR: &str = "v0.3.1a";
 
 fn main() {
     let matches = command!()
@@ -53,13 +53,8 @@ fn main() {
                 let plugin = submatches.get_one::<String>("plugin").unwrap();
                 commands::remove_plugin(chatterino_path, plugin.to_string())
             }
-            "info" => {
-                todo!("implement info")
-            }
-            _ => {
-                println!("none");
-                Err("Command not found!".to_string())
-            }
+            "info" => Err("This command is not implemented yet!".to_string()),
+            _ => Err("Command not found!".to_string()),
         } {
             println!("Error: {message}");
         }
