@@ -6,7 +6,7 @@ use std::{
     env::var_os,
     fs::{self, File},
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tabled::{builder::Builder, settings::Style};
@@ -125,7 +125,13 @@ pub fn get_default_chatterino_path() -> Result<PathBuf, String> {
             roaming_path_buf.push("Chatterino2");
             Ok(roaming_path_buf.to_owned())
         }
-        Some("linux") => Ok(Path::new("~/.local/share/chatterino").to_owned()),
+        Some("linux") => {
+            let mut home_path_buf = var_os("HOME")
+                .map(PathBuf::from)
+                .ok_or("Could not read $HOME environment variable. Please use --path instead.")?;
+            home_path_buf.push(".local/share/chatterino");
+            Ok(home_path_buf.to_owned())
+        }
         _ => Err(
             "Unsupported OS, cannot locate Chatterino folder. Please use --path instead."
                 .to_string(),
