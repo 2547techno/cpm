@@ -234,10 +234,15 @@ pub fn write_plugin_data(
     Ok(())
 }
 
-pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Plugin, String> {
+pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Option<Plugin>, String> {
     let mut plugin = Plugin::new();
 
-    let mut info_file = File::open(plugin_path.join("info.json"))
+    let info_file_path = plugin_path.join("info.json");
+    if !info_file_path.is_file() {
+        return Ok(None);
+    }
+
+    let mut info_file = File::open(info_file_path)
         .or(Err("There was an error reading the info.json plugin file"))?;
 
     let mut info_file_buf = Vec::new();
@@ -304,12 +309,12 @@ pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Plugin,
         .collect();
     plugin.permissions = permissions;
 
-    Ok(plugin)
+    Ok(Some(plugin))
 }
 
 pub fn parse_plugins(path: &PathBuf) -> Result<Vec<Plugin>, String> {
     let entries = fs::read_dir(path).or(Err("Could not read Plugins/ folder"))?;
-    let mut plugins = Vec::new();
+    let mut plugins: Vec<Plugin> = Vec::new();
 
     let file_read_err_str = "Could not read file in Plugins/ folder";
     for entry in entries {
@@ -323,7 +328,11 @@ pub fn parse_plugins(path: &PathBuf) -> Result<Vec<Plugin>, String> {
 
         let plugin_path = dir_entry.path();
 
-        plugins.push(parse_plugin(plugin_path, file_name)?);
+        let plugin = parse_plugin(plugin_path, file_name)?;
+        match plugin {
+            Some(plugin) => plugins.push(plugin),
+            None => continue,
+        };
     }
 
     Ok(plugins)
