@@ -96,9 +96,7 @@ pub fn get_plugin(
     let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
-        get_default_chatterino_path()
-            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
-            .join("Plugins")
+        get_default_chatterino_path()?.join("Plugins")
     };
 
     // write to plugin folder
@@ -112,9 +110,7 @@ pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
     let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
-        get_default_chatterino_path()
-            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
-            .join("Plugins")
+        get_default_chatterino_path()?.join("Plugins")
     };
 
     let plugins = parse_plugins(&chatterino_plugins_path)?;
@@ -128,9 +124,7 @@ pub fn remove_plugin(chatterino_path: Option<&String>, plugin_name: String) -> R
     let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
-        get_default_chatterino_path()
-            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
-            .join("Plugins")
+        get_default_chatterino_path()?.join("Plugins")
     };
 
     let plugins = parse_plugins(&chatterino_plugins_path)?;
@@ -152,9 +146,7 @@ pub fn plugin_info(chatterino_path: Option<&String>, plugin_name: String) -> Res
     let chatterino_plugins_path = if let Some(chatterino_path) = chatterino_path {
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
-        get_default_chatterino_path()
-            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
-            .join("Plugins")
+        get_default_chatterino_path()?.join("Plugins")
     };
 
     let plugins = parse_plugins(&chatterino_plugins_path)?;
