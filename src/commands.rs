@@ -97,7 +97,7 @@ pub fn get_plugin(
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
         get_default_chatterino_path()
-            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
             .join("Plugins")
     };
 
@@ -113,7 +113,7 @@ pub fn list_plugins(chatterino_path: Option<&String>) -> Result<(), String> {
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
         get_default_chatterino_path()
-            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
             .join("Plugins")
     };
 
@@ -129,7 +129,7 @@ pub fn remove_plugin(chatterino_path: Option<&String>, plugin_name: String) -> R
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
         get_default_chatterino_path()
-            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
             .join("Plugins")
     };
 
@@ -153,7 +153,7 @@ pub fn plugin_info(chatterino_path: Option<&String>, plugin_name: String) -> Res
         Path::new(chatterino_path).to_owned().join("Plugins")
     } else {
         get_default_chatterino_path()
-            .or(Err("Chatterino path could no be automatically detected and no path was explicity specified".to_string()))?
+            .or(Err("Chatterino path could not be automatically detected and no path was explicitly specified".to_string()))?
             .join("Plugins")
     };
 
