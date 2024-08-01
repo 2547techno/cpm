@@ -3,7 +3,7 @@ use clap::{arg, command, Arg, ArgAction, Command};
 mod commands;
 mod utils;
 
-const VERSION_STR: &str = "v0.4.1";
+const VERSION_STR: &str = "v0.4.2";
 
 fn main() {
     let matches = command!()
