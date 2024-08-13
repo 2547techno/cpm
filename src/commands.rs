@@ -6,9 +6,11 @@ use std::{io::Read, path::Path};
 use url::{Host::Domain, Url};
 
 use crate::utils::{
-    get_default_chatterino_path, get_files_from_gzip, handle_github_rate_limit, parse_plugins,
-    print_plugin_info, print_plugins, write_plugin_data,
+    common::{get_default_chatterino_path, get_files_from_gzip},
+    github::handle_github_rate_limit,
+    plugin::{parse_plugins, print_plugin_info, print_plugins, write_plugin_data},
 };
+
 use crate::VERSION_STR;
 
 pub fn get_plugin(
