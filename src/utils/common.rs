@@ -61,6 +61,10 @@ impl Plugin {
     }
 }
 
+/// Extract files from .tar.gz file
+///
+/// ### Arguments
+/// * `buf` a .tar.gz file in vec of bytes
 pub fn get_files_from_gzip(buf: &Vec<u8>) -> Vec<ProjectFile> {
     let dec = GzDecoder::new(&buf[..]);
     let mut archive = Archive::new(dec);
@@ -100,6 +104,7 @@ pub fn get_files_from_gzip(buf: &Vec<u8>) -> Vec<ProjectFile> {
     files
 }
 
+/// Get the default Chatterino path based on OS
 pub fn get_default_chatterino_path() -> Result<PathBuf, String> {
     let machine_kind = if cfg!(target_os = "linux") {
         Some("linux")

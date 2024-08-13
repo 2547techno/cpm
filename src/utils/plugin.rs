@@ -8,6 +8,12 @@ use std::{
     path::PathBuf,
 };
 
+/// Write plugin files to Plugins/ folder
+///
+/// ### Arguments
+/// * `base_path` path to Chatterino folder
+/// * `name` name of plugin to install (will be the folder name in `Plugins/`)
+/// * `files` plugin files
 pub fn write_plugin_data(
     base_path: PathBuf,
     name: &str,
@@ -65,6 +71,11 @@ pub fn write_plugin_data(
     Ok(())
 }
 
+/// Get plugin metadata from folder
+///
+/// ### Arguments
+/// * `plugin_path` path to plugin folder
+/// * `folder_name` plugin folder name
 pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Option<Plugin>, String> {
     let mut plugin = Plugin::new();
 
@@ -143,6 +154,10 @@ pub fn parse_plugin(plugin_path: PathBuf, folder_name: String) -> Result<Option<
     Ok(Some(plugin))
 }
 
+/// Get all plugins metadata
+///
+/// ### Arguments
+/// * `path` path to `Plugins/` folder
 pub fn parse_plugins(path: &PathBuf) -> Result<Vec<Plugin>, String> {
     let entries = fs::read_dir(path).or(Err("Could not read Plugins/ folder"))?;
     let mut plugins: Vec<Plugin> = Vec::new();
